@@ -67,3 +67,17 @@ services:
         mkdir -p /sources/logs /sources/dags /sources/plugins
         chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
         exec /entrypoint airflow version
+  
+
+  openssh:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: openssh-server
+    volumes:
+      - ./ssh:/home/user/.ssh
+    environment:
+      - USER_PASSWORD=password #optional
+      - USER_NAME=charles #optional
+      - PASSWORD_ACCESS=true
+    ports:
+      - 2222:2222
+    restart: unless-stopped

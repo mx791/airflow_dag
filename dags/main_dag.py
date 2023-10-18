@@ -1,6 +1,7 @@
 import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.contrib.operators.ssh_operator import SSHOperator
 from airflow.decorators import task_group
 import json
 
@@ -13,6 +14,9 @@ dag = DAG(
     #schedule="@daily",
 )
 
+setup = SSHOperator(task_id="setup", dag=dag, ssh_conn_id="ssh_server", command="hostname")
+end = SSHOperator(task_id="end", dag=dag, ssh_conn_id="ssh_server", command="hostname")
+
 def lauch_etl(etl):
     def main():
         print("je lance l'etl " + etl)
@@ -20,11 +24,12 @@ def lauch_etl(etl):
 
 def lauch_model(model):
     def main():
-        print("je lance l'etl " + model)
+        print("je lance le modèle " + model)
     return main
 
 def create_etl(name, dag=dag):
-    return PythonOperator(task_id=name, dag=dag, python_callable=lauch_etl(name))
+    #return PythonOperator(task_id=name, dag=dag, python_callable=lauch_etl(name))
+    return SSHOperator(task_id=name, dag=dag, ssh_conn_id="ssh_server", command="hostname")
 
 
 def create_model(name, dag=dag):
@@ -38,6 +43,9 @@ for modl in dependancy_graph:
     for etl in dependancy_graph[modl]:
         if etl not in names_to_objects:
             names_to_objects[etl] = create_etl(etl)
+
         names_to_objects[etl] >> names_to_objects[modl]
+        setup >> names_to_objects[etl]
+        names_to_objects[modl] >> end
 
     
